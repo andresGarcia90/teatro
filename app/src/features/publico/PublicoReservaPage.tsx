@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   createPublicReservation,
@@ -9,15 +10,31 @@ import {
 } from '../../lib/data/public-portal'
 import { SeatLegend } from '../../components/ui/SeatLegend'
 import { PublicoHeader } from '../../components/ui/PublicoHeader'
+import { PublicoReservationModal } from '../../components/ui/PublicoReservationModal'
+
+type SeatWithSection = PublicSeat & {
+  sectionId: string
+  sectionNombre: string
+  sectionOrden: number
+}
+
+function buildNombreCompleto(nombre: string, apellido: string, nombreNino: string): string {
+  return `${nombre.trim()} ${apellido.trim()} (Padre/Madre de ${nombreNino.trim()})`
+    .replace(/\s+/g, ' ')
+    .trim()
+}
 
 export function PublicoReservaPage() {
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const [nombreCompleto, setNombreCompleto] = useState('')
-  const [documento, setDocumento] = useState('')
-  const [selectedSectionId, setSelectedSectionId] = useState('')
   const [selectedSeatIds, setSelectedSeatIds] = useState<string[]>([])
-  const [mensajeExito, setMensajeExito] = useState('')
   const [currentTime, setCurrentTime] = useState(() => Date.now())
+
+  const [formOpen, setFormOpen] = useState(false)
+  const [nombre, setNombre] = useState('')
+  const [apellido, setApellido] = useState('')
+  const [documento, setDocumento] = useState('')
+  const [nombreNino, setNombreNino] = useState('')
 
   const eventQuery = useQuery({
     queryKey: ['public-event-data'],
@@ -33,38 +50,31 @@ export function PublicoReservaPage() {
     return () => window.clearInterval(interval)
   }, [])
 
-  const effectiveSelectedSectionId = selectedSectionId || eventQuery.data?.sections?.[0]?.id || ''
+  const sectionsKey = useMemo(
+    () => eventQuery.data?.sections?.map((section) => section.id).join('|') || '',
+    [eventQuery.data?.sections],
+  )
 
   const seatsQuery = useQuery({
-    queryKey: ['public-seats', eventQuery.data?.eventoId, effectiveSelectedSectionId],
-    queryFn: () => getPublicSeats(eventQuery.data!.eventoId, effectiveSelectedSectionId),
-    enabled: Boolean(eventQuery.data?.eventoId && effectiveSelectedSectionId),
+    queryKey: ['public-seats-all', eventQuery.data?.eventoId, sectionsKey],
+    queryFn: async () => {
+      const sections = eventQuery.data?.sections || []
+      const seatsBySection = await Promise.all(
+        sections.map(async (section) => {
+          const seats = await getPublicSeats(eventQuery.data!.eventoId, section.id)
+          return seats.map<SeatWithSection>((seat) => ({
+            ...seat,
+            sectionId: section.id,
+            sectionNombre: section.nombre,
+            sectionOrden: section.orden,
+          }))
+        }),
+      )
+
+      return seatsBySection.flat()
+    },
+    enabled: Boolean(eventQuery.data?.eventoId && sectionsKey),
     refetchInterval: 10_000,
-  })
-
-  const reserveMutation = useMutation({
-    mutationFn: async () => {
-      const seatIdsToReserve = selectedSeatIds.slice(0, maxSeleccionable)
-
-      for (const seatId of seatIdsToReserve) {
-        await createPublicReservation(eventQuery.data!.eventoId, {
-          nombreCompleto,
-          documento,
-          asientoId: seatId,
-        })
-      }
-    },
-    onSuccess: async () => {
-      const plural = selectedSeatIds.length === 1 ? 'asiento' : 'asientos'
-      setMensajeExito(`Reserva confirmada correctamente para ${selectedSeatIds.length} ${plural}.`)
-      setSelectedSeatIds([])
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['public-seats', eventQuery.data?.eventoId, effectiveSelectedSectionId] }),
-        queryClient.invalidateQueries({ queryKey: ['public-document-validation', eventQuery.data?.eventoId, documento.trim()] }),
-        queryClient.invalidateQueries({ queryKey: ['project-status'] }),
-        queryClient.invalidateQueries({ queryKey: ['backoffice-dashboard-ocupacion'] }),
-      ])
-    },
   })
 
   const documentoNormalizado = documento.trim()
@@ -76,6 +86,60 @@ export function PublicoReservaPage() {
     staleTime: 5_000,
   })
 
+  const maxEntradasPorPersona = Math.max(eventQuery.data?.maxEntradasPorPersona ?? 1, 1)
+  const reservasUsadas = documentValidationQuery.data?.used ?? 0
+  const limiteDocumento = documentValidationQuery.data?.limit ?? maxEntradasPorPersona
+  const cupoDisponibleDocumento = Math.max(limiteDocumento - reservasUsadas, 0)
+  const excedeCupoDocumento =
+    Boolean(documentoNormalizado) && selectedSeatIds.length > cupoDisponibleDocumento
+
+  const reserveMutation = useMutation({
+    mutationFn: async () => {
+      const nombreCompleto = buildNombreCompleto(nombre, apellido, nombreNino)
+
+      for (const seatId of selectedSeatIds) {
+        await createPublicReservation(eventQuery.data!.eventoId, {
+          nombreCompleto,
+          nombre,
+          apellido,
+          nombreNino,
+          documento,
+          asientoId: seatId,
+        })
+      }
+    },
+    onSuccess: async () => {
+      const seatCodes = [...selectedSeatCodes]
+      const documentoActual = documento.trim()
+
+      setSelectedSeatIds([])
+      setFormOpen(false)
+      setNombre('')
+      setApellido('')
+      setDocumento('')
+      setNombreNino('')
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['public-seats-all', eventQuery.data?.eventoId] }),
+        queryClient.invalidateQueries({
+          queryKey: ['public-document-validation', eventQuery.data?.eventoId, documentoActual],
+        }),
+        queryClient.invalidateQueries({ queryKey: ['project-status'] }),
+        queryClient.invalidateQueries({ queryKey: ['backoffice-dashboard-ocupacion'] }),
+      ])
+
+      navigate('/publico/reserva/confirmada', {
+        state: {
+          eventName: eventQuery.data?.nombreEvento,
+          eventDate: eventQuery.data?.fechaEvento,
+          eventTime: eventQuery.data?.horario,
+          seatCodes,
+          confirmedAt: new Date().toISOString(),
+        },
+      })
+    },
+  })
+
   const selectedSeats = useMemo(() => {
     if (!seatsQuery.data || selectedSeatIds.length === 0) {
       return []
@@ -85,40 +149,83 @@ export function PublicoReservaPage() {
     return seatsQuery.data.filter((seat) => selectedSet.has(seat.id))
   }, [seatsQuery.data, selectedSeatIds])
 
-  const seatsByRow = useMemo(() => {
-    const map = new Map<string, PublicSeat[]>()
+  const selectedSeatCodes = selectedSeats.map((seat) => seat.codigoAsiento)
+
+  const seatsBySection = useMemo(() => {
+    const bySection = new Map<
+      string,
+      {
+        sectionId: string
+        sectionNombre: string
+        sectionOrden: number
+        rows: Array<[string, SeatWithSection[]]>
+      }
+    >()
 
     for (const seat of seatsQuery.data || []) {
-      const current = map.get(seat.fila) || []
-      current.push(seat)
-      map.set(seat.fila, current)
+      const existing = bySection.get(seat.sectionId)
+      if (existing) {
+        const row = existing.rows.find(([fila]) => fila === seat.fila)
+        if (row) {
+          row[1].push(seat)
+        } else {
+          existing.rows.push([seat.fila, [seat]])
+        }
+      } else {
+        bySection.set(seat.sectionId, {
+          sectionId: seat.sectionId,
+          sectionNombre: seat.sectionNombre,
+          sectionOrden: seat.sectionOrden,
+          rows: [[seat.fila, [seat]]],
+        })
+      }
     }
 
-    return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b))
+    const sortedSections = Array.from(bySection.values()).sort(
+      (a, b) => a.sectionOrden - b.sectionOrden || a.sectionNombre.localeCompare(b.sectionNombre),
+    )
+
+    return sortedSections.map((section) => ({
+      ...section,
+      rows: section.rows
+        .map(([fila, seats]) => [
+          fila,
+          [...seats].sort((a, b) => a.numero - b.numero),
+        ] as [string, SeatWithSection[]])
+        .sort(([a], [b]) => a.localeCompare(b)),
+    }))
   }, [seatsQuery.data])
 
   const cierreVencido = eventQuery.data?.fechaCierreReservas
     ? new Date(eventQuery.data.fechaCierreReservas).getTime() < currentTime
     : false
 
-  const totalAsientosSeccion = seatsQuery.data?.length || 0
-  const asientosReservados = seatsQuery.data?.filter((seat) => seat.reservado).length || 0
-  const porcentajeOcupacion = totalAsientosSeccion
-    ? Math.round((asientosReservados / totalAsientosSeccion) * 100)
-    : 0
-
   const reservasDisponibles = Boolean(
     eventQuery.data?.reservasHabilitadas && !cierreVencido && eventQuery.data?.sections?.length,
   )
 
-  const documentoPuedeReservar =
-    !documentoNormalizado || documentValidationQuery.data?.canReserve === true
+  const canOpenForm =
+    reservasDisponibles && selectedSeatIds.length > 0 && selectedSeatIds.length <= maxEntradasPorPersona
 
-  const maxEntradasPorPersona = Math.max(eventQuery.data?.maxEntradasPorPersona ?? 1, 1)
-  const reservasUsadas = documentValidationQuery.data?.used ?? 0
-  const limiteDocumento = documentValidationQuery.data?.limit ?? maxEntradasPorPersona
-  const cupoDisponibleDocumento = Math.max(limiteDocumento - reservasUsadas, 0)
-  const maxSeleccionable = documentoNormalizado ? cupoDisponibleDocumento : maxEntradasPorPersona
+  const canSubmitReservation =
+    !reserveMutation.isPending &&
+    reservasDisponibles &&
+    selectedSeatIds.length > 0 &&
+    Boolean(nombre.trim()) &&
+    Boolean(apellido.trim()) &&
+    Boolean(nombreNino.trim()) &&
+    Boolean(documentoNormalizado) &&
+    !documentValidationQuery.isLoading &&
+    documentValidationQuery.data?.canReserve === true &&
+    !excedeCupoDocumento
+
+  const documentErrorMessage = documentValidationQuery.error
+    ? (documentValidationQuery.error as Error).message
+    : undefined
+
+  const reserveErrorMessage = reserveMutation.error
+    ? (reserveMutation.error as Error).message
+    : undefined
 
   const toggleSeatSelection = (seat: PublicSeat) => {
     if (seat.reservado || !reservasDisponibles) {
@@ -130,7 +237,7 @@ export function PublicoReservaPage() {
         return current.filter((seatId) => seatId !== seat.id)
       }
 
-      if (current.length >= maxSeleccionable) {
+      if (current.length >= maxEntradasPorPersona) {
         return current
       }
 
@@ -138,8 +245,16 @@ export function PublicoReservaPage() {
     })
   }
 
+  const triggerForm = () => {
+    if (!canOpenForm) {
+      return
+    }
+
+    setFormOpen(true)
+  }
+
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen text-foreground" style={{ backgroundColor: 'rgb(7, 17, 33)' }}>
       <PublicoHeader
         mode="reserva"
         eventName={eventQuery.data?.nombreEvento}
@@ -147,113 +262,33 @@ export function PublicoReservaPage() {
         eventTime={eventQuery.data?.horario}
         selectedSeatsCount={selectedSeatIds.length}
       />
-      
-      <main className="app-fade-in">
-        <section className="mx-auto max-w-2xl p-6 md:p-8">
-          <section className="mb-8 rounded-lg border border-border bg-card p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-card-foreground">Identificación</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Ingresa tus datos para continuar con la selección de asientos.
-            </p>
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2" htmlFor="nombreCompleto">
-                  Nombre completo
-                </label>
-                <input
-                  id="nombreCompleto"
-                  type="text"
-                  value={nombreCompleto}
-                  onChange={(e) => setNombreCompleto(e.target.value)}
-                  className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm shadow-sm focus:border-primary focus:ring-1 focus:ring-primary"
-                  placeholder="Ej: Ana Perez"
-                  autoComplete="name"
-                />
-              </div>
 
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2" htmlFor="documento">
-                  Documento
-                </label>
-                <input
-                  id="documento"
-                  type="text"
-                  value={documento}
-                  onChange={(e) => setDocumento(e.target.value)}
-                  className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm shadow-sm focus:border-primary focus:ring-1 focus:ring-primary"
-                  placeholder="Ej: 12345678"
-                  autoComplete="off"
-                />
-              </div>
-            </div>
-
-            {documentoNormalizado && documentValidationQuery.isLoading && (
-              <p className="mt-4 text-sm text-muted-foreground" role="status" aria-live="polite">
-                Validando documento...
-              </p>
-            )}
-
-            {documentValidationQuery.error && (
-              <p className="mt-4 text-sm text-red-600" role="alert">
-                Error al validar documento: {(documentValidationQuery.error as Error).message}
-              </p>
-            )}
-
-            {documentoNormalizado && documentValidationQuery.data && (
-              <p
-                className={`mt-4 text-sm font-medium ${
-                  documentValidationQuery.data.canReserve ? 'text-emerald-700' : 'text-amber-700'
-                }`}
-                role="status"
-                aria-live="polite"
-              >
-                {documentValidationQuery.data.message}
-              </p>
-            )}
-          </section>
-
-          <section className="mb-8 rounded-lg border border-border bg-card p-6 shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+      <main className="app-fade-in pb-24 lg:pb-8">
+        <section className="mx-auto grid max-w-6xl gap-6 p-4 md:p-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
+          <section className="rounded-lg border border-border bg-card p-5 shadow-sm md:p-6">
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h2 className="text-lg font-semibold text-card-foreground">Selección de asientos</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Puedes seleccionar hasta <span className="font-semibold">{maxSeleccionable}</span> asientos
+                  Puedes seleccionar hasta{' '}
+                  <span className="font-semibold">{maxEntradasPorPersona}</span> asientos.
                 </p>
               </div>
-
-              {eventQuery.data?.sections?.length ? (
-                <select
-                  className="rounded-lg border border-border bg-secondary px-3 py-2 text-sm shadow-sm focus:border-primary focus:ring-1 focus:ring-primary"
-                  value={effectiveSelectedSectionId}
-                  aria-label="Seleccionar sección"
-                  onChange={(e) => {
-                    setSelectedSectionId(e.target.value)
-                    setSelectedSeatIds([])
-                  }}
-                >
-                  {eventQuery.data.sections.map((section) => (
-                    <option key={section.id} value={section.id}>
-                      {section.nombre}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <p className="text-sm text-muted-foreground">No hay secciones disponibles.</p>
-              )}
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                Vista unificada de secciones
+              </p>
             </div>
 
-            <SeatLegend
-              porcentajeOcupacion={porcentajeOcupacion}
-              asientosReservados={asientosReservados}
-              totalAsientosSeccion={totalAsientosSeccion}
-            />
+            <SeatLegend />
 
             {!eventQuery.isLoading && cierreVencido && (
               <p className="mt-4 text-sm text-amber-700">El periodo de reservas ya finalizó.</p>
             )}
 
             {!eventQuery.isLoading && eventQuery.data && !eventQuery.data.reservasHabilitadas && (
-              <p className="mt-4 text-sm text-amber-700">Las reservas están deshabilitadas por el administrador.</p>
+              <p className="mt-4 text-sm text-amber-700">
+                Las reservas están deshabilitadas por el administrador.
+              </p>
             )}
 
             {seatsQuery.isLoading ? (
@@ -281,98 +316,180 @@ export function PublicoReservaPage() {
                   Reintentar
                 </button>
               </div>
-            ) : seatsByRow.length === 0 ? (
+            ) : seatsBySection.length === 0 ? (
               <div className="mt-6 rounded-lg border border-border bg-secondary p-4" role="status">
-                <p className="text-sm font-medium text-muted-foreground">No hay asientos en esta sección.</p>
+                <p className="text-sm font-medium text-muted-foreground">No hay asientos en el mapa.</p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Aún no se generaron filas y asientos. Solicita al administrador que configure esta sección.
+                  Aún no se generaron filas y asientos. Solicita al administrador que configure las secciones.
                 </p>
               </div>
             ) : (
-              <div className="mt-6 space-y-4">
-                <div className="rounded-md border border-border bg-secondary px-4 py-2 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Escenario
-                </div>
-                {seatsByRow.map(([fila, seats]) => (
-                  <div key={fila} className="flex flex-wrap items-center gap-3">
-                    <span className="w-12 text-xs font-semibold text-muted-foreground">Fila {fila}</span>
-                    <div className="flex flex-wrap gap-2">
-                      {seats.map((seat) => {
-                        const isSelected = selectedSeatIds.includes(seat.id)
-                        const reachedLimit = !isSelected && selectedSeatIds.length >= maxSeleccionable
-                        return (
-                          <button
-                            key={seat.id}
-                            type="button"
-                            disabled={seat.reservado || !reservasDisponibles || reachedLimit}
-                            onClick={() => toggleSeatSelection(seat)}
-                            aria-pressed={isSelected}
-                            aria-label={`Asiento ${seat.codigoAsiento}${seat.reservado ? ', reservado' : isSelected ? ', seleccionado' : ', disponible'}`}
-                            className={`h-8 w-8 rounded-md text-xs font-semibold transition ${
-                              seat.reservado
-                                ? 'cursor-not-allowed border border-border bg-muted text-muted-foreground'
-                                : isSelected
-                                  ? 'border border-accent bg-accent text-accent-foreground shadow-md'
-                                  : 'border border-primary bg-secondary text-foreground hover:border-accent hover:bg-muted'
-                            }`}
-                          >
-                            {seat.numero}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
+              <div className="seat-map-shell mt-6 space-y-4">
+                <div className="seat-stage">Escenario</div>
+                {seatsBySection.map((section) => (
+                  <section key={section.sectionId} className="seat-section-block">
+                    <div className="seat-section-title">{section.sectionNombre}</div>
+                    {section.rows.map(([fila, seats]) => (
+                      <div key={`${section.sectionId}-${fila}`} className="seat-row">
+                        <span className="seat-row-label" aria-hidden>
+                          {fila}
+                        </span>
+                        <div className="seat-grid">
+                          {seats.map((seat) => {
+                            const isSelected = selectedSeatIds.includes(seat.id)
+                            const reachedLimit = !isSelected && selectedSeatIds.length >= maxEntradasPorPersona
+                            const isBlocked = !seat.reservado && (reachedLimit || !reservasDisponibles)
+                            const seatStateClass = seat.reservado
+                              ? 'is-reserved'
+                              : isSelected
+                                ? 'is-selected'
+                                : isBlocked
+                                  ? 'is-blocked'
+                                  : 'is-available'
+
+                            return (
+                              <button
+                                key={seat.id}
+                                type="button"
+                                disabled={seat.reservado || isBlocked}
+                                onClick={() => toggleSeatSelection(seat)}
+                                aria-pressed={isSelected}
+                                aria-label={`Asiento ${seat.codigoAsiento} en ${section.sectionNombre}${seat.reservado ? ', reservado' : isSelected ? ', seleccionado' : ', disponible'}`}
+                                className={`seat-button ${seatStateClass}`}
+                              >
+                                {isSelected ? '✓' : ''}
+                              </button>
+                            )
+                          })}
+                        </div>
+                        <span className="seat-row-label" aria-hidden>
+                          {fila}
+                        </span>
+                      </div>
+                    ))}
+                  </section>
                 ))}
               </div>
             )}
           </section>
 
-          <section className="rounded-lg border border-border bg-card p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-card-foreground">Confirmar reserva</h2>
+          <aside className="hidden lg:block">
+            <section className="sticky top-16 flex min-h-[calc(100vh-5rem)] flex-col rounded-lg border border-border/80 bg-[#102544] p-5 shadow-sm">
+              <div>
+                <h2 className="text-lg font-semibold text-card-foreground">Resumen de reserva</h2>
 
-            <div className="mt-4 text-sm text-muted-foreground">
-              <p>
-                <span className="font-medium">Asientos seleccionados:</span>{' '}
-                <span className="font-semibold text-primary">
-                  {selectedSeats.length ? selectedSeats.map((seat) => seat.codigoAsiento).join(', ') : 'Ninguno'}
-                </span>
-              </p>
-            </div>
+                <div className="mt-5">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                    Asientos seleccionados
+                  </p>
+                  {selectedSeatCodes.length > 0 ? (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {selectedSeatCodes.map((code) => (
+                        <span
+                          key={`desktop-seat-${code}`}
+                          className="inline-flex items-center rounded-full border border-primary/50 bg-primary/20 px-2.5 py-1 text-xs font-semibold text-sky-100"
+                        >
+                          {code}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="mt-6 rounded-lg border border-border/70 bg-[#18345b] px-4 py-5 text-center">
+                      <svg
+                        className="mx-auto mb-3 h-6 w-6 text-muted-foreground"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        aria-hidden
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={1.8}
+                          d="M3 8.5A2.5 2.5 0 015.5 6h13A2.5 2.5 0 0121 8.5V11a2 2 0 00-2 2 2 2 0 002 2v2.5a2.5 2.5 0 01-2.5 2.5h-13A2.5 2.5 0 013 17.5V15a2 2 0 002-2 2 2 0 00-2-2V8.5z"
+                        />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8.5 9v6m7-6v6" />
+                      </svg>
+                      <p className="text-sm text-muted-foreground">
+                        Haz clic en un asiento disponible para seleccionarlo
+                      </p>
+                    </div>
+                  )}
+                </div>
 
-            {reserveMutation.error && (
-              <p className="mt-4 text-sm text-red-600" role="alert">
-                Error al reservar: {(reserveMutation.error as Error).message}
-              </p>
-            )}
+                {selectedSeatIds.length > maxEntradasPorPersona && (
+                  <p className="mt-4 text-sm text-amber-700">
+                    Superaste el máximo permitido por persona.
+                  </p>
+                )}
 
-            {mensajeExito && (
-              <p className="mt-4 text-sm text-emerald-700 font-medium" role="status" aria-live="polite">
-                ✓ {mensajeExito}
-              </p>
-            )}
+                {reserveMutation.error && (
+                  <p className="mt-4 text-sm text-red-600" role="alert">
+                    Error al reservar: {(reserveMutation.error as Error).message}
+                  </p>
+                )}
+              </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                setMensajeExito('')
-                reserveMutation.mutate()
-              }}
-              className="mt-6 w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition hover:bg-accent hover:text-accent-foreground disabled:opacity-50 shadow-sm hover:shadow-md"
-              disabled={
-                reserveMutation.isPending ||
-                !reservasDisponibles ||
-                !documentoPuedeReservar ||
-                selectedSeatIds.length > maxSeleccionable ||
-                selectedSeatIds.length === 0 ||
-                !nombreCompleto.trim() ||
-                !documento.trim()
-              }
-            >
-              {reserveMutation.isPending ? 'Confirmando...' : 'Confirmar reserva'}
-            </button>
-          </section>
+              <button
+                type="button"
+                onClick={triggerForm}
+                className="mt-auto w-full rounded-xl px-4 py-3 text-sm font-semibold text-primary-foreground transition disabled:opacity-50"
+                style={{ backgroundColor: 'rgb(37, 99, 235)', boxShadow: '0 10px 24px rgba(37, 99, 235, 0.36)' }}
+                disabled={!canOpenForm}
+              >
+                Reservar asientos
+              </button>
+            </section>
+          </aside>
         </section>
       </main>
+
+      <section className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 px-4 py-3 backdrop-blur-sm lg:hidden">
+        <div className="mx-auto flex w-full max-w-2xl items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              Asientos seleccionados
+            </p>
+            <p className="truncate text-sm font-semibold text-card-foreground">
+              {selectedSeatCodes.length > 0 ? selectedSeatCodes.join(', ') : 'Ninguno'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={triggerForm}
+            className="shrink-0 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-accent hover:text-accent-foreground disabled:opacity-50"
+            style={{ backgroundColor: 'rgb(37, 99, 235)' }}
+            disabled={!canOpenForm}
+          >
+            Continuar
+          </button>
+        </div>
+      </section>
+
+      <PublicoReservationModal
+        open={formOpen}
+        selectedSeatCodes={selectedSeatCodes}
+        formData={{ nombre, apellido, documento, nombreNino }}
+        documentoNormalizado={documentoNormalizado}
+        isDocumentLoading={documentValidationQuery.isLoading}
+        documentValidationMessage={documentValidationQuery.data?.message}
+        canReserveDocument={documentValidationQuery.data?.canReserve}
+        documentErrorMessage={documentErrorMessage}
+        excedeCupoDocumento={excedeCupoDocumento}
+        cupoDisponibleDocumento={cupoDisponibleDocumento}
+        selectedSeatsCount={selectedSeatIds.length}
+        reserveErrorMessage={reserveErrorMessage}
+        isSubmitting={reserveMutation.isPending}
+        canSubmit={canSubmitReservation}
+        onClose={() => setFormOpen(false)}
+        onConfirm={() => {
+          reserveMutation.mutate()
+        }}
+        onNombreChange={setNombre}
+        onApellidoChange={setApellido}
+        onDocumentoChange={setDocumento}
+        onNombreNinoChange={setNombreNino}
+      />
     </div>
   )
 }

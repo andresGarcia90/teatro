@@ -57,11 +57,17 @@ create table if not exists reservas (
   evento_id uuid not null references eventos(id) on delete cascade,
   asiento_id uuid not null references asientos(id) on delete restrict,
   nombre_completo text not null,
+  nombre text,
+  apellido text,
+  nombre_nino text,
   documento text not null,
   created_at timestamptz not null default now(),
   constraint reservas_evento_asiento_unico unique (evento_id, asiento_id),
   constraint reservas_documento_no_vacio check (length(trim(documento)) > 0),
-  constraint reservas_nombre_no_vacio check (length(trim(nombre_completo)) > 0)
+  constraint reservas_nombre_no_vacio check (length(trim(nombre_completo)) > 0),
+  constraint reservas_nombre_simple_no_vacio check (nombre is null or length(trim(nombre)) > 0),
+  constraint reservas_apellido_no_vacio check (apellido is null or length(trim(apellido)) > 0),
+  constraint reservas_nombre_nino_no_vacio check (nombre_nino is null or length(trim(nombre_nino)) > 0)
 );
 
 create index if not exists ix_reservas_evento_id on reservas(evento_id);

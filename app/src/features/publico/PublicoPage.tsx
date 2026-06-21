@@ -351,38 +351,44 @@ export function PublicoPage() {
               </p>
             </div>
           ) : (
-            <div className="mt-4 space-y-4">
-              <div className="rounded-md border border-slate-300 bg-slate-100 px-4 py-2 text-center text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
-                Escenario
-              </div>
+            <div className="seat-map-shell mt-4 space-y-4">
+              <div className="seat-stage">Escenario</div>
               {seatsByRow.map(([fila, seats]) => (
-                <div key={fila} className="flex flex-wrap items-center gap-2">
-                  <span className="w-14 text-sm font-semibold text-slate-600">Fila {fila}</span>
-                  <div className="flex flex-wrap gap-2">
+                <div key={fila} className="seat-row">
+                  <span className="seat-row-label" aria-hidden>
+                    {fila}
+                  </span>
+                  <div className="seat-grid">
                     {seats.map((seat) => {
                       const isSelected = selectedSeatIds.includes(seat.id)
                       const reachedLimit = !isSelected && selectedSeatIds.length >= maxSeleccionable
+                      const isBlocked = !seat.reservado && (reachedLimit || !reservasDisponibles)
+                      const seatStateClass = seat.reservado
+                        ? 'is-reserved'
+                        : isSelected
+                          ? 'is-selected'
+                          : isBlocked
+                            ? 'is-blocked'
+                            : 'is-available'
+
                       return (
                         <button
                           key={seat.id}
                           type="button"
-                          disabled={seat.reservado || !reservasDisponibles || reachedLimit}
+                          disabled={seat.reservado || isBlocked}
                           onClick={() => toggleSeatSelection(seat)}
                           aria-pressed={isSelected}
                           aria-label={`Asiento ${seat.codigoAsiento}${seat.reservado ? ', reservado' : isSelected ? ', seleccionado' : ', disponible'}`}
-                          className={`rounded-md border px-3 py-1 text-sm font-semibold transition ${
-                            seat.reservado
-                              ? 'cursor-not-allowed border-slate-200 bg-slate-200 text-slate-500'
-                              : isSelected
-                                ? 'border-sky-700 bg-sky-700 text-white shadow'
-                                : 'border-sky-300 bg-sky-50 text-sky-900 hover:border-sky-500 hover:bg-sky-100'
-                          }`}
+                          className={`seat-button ${seatStateClass}`}
                         >
-                          {seat.numero}
+                          {isSelected ? '✓' : seat.numero}
                         </button>
                       )
                     })}
                   </div>
+                  <span className="seat-row-label" aria-hidden>
+                    {fila}
+                  </span>
                 </div>
               ))}
             </div>

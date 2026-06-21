@@ -29,6 +29,9 @@ export type PublicSeat = {
 
 export type ReservationInput = {
   nombreCompleto: string
+  nombre?: string
+  apellido?: string
+  nombreNino?: string
   documento: string
   asientoId: string
 }
@@ -42,6 +45,18 @@ export type DocumentValidation = {
 
 const dataMode = (import.meta.env.VITE_DATA_MODE || 'supabase').toLowerCase()
 const localApiUrl = import.meta.env.VITE_LOCAL_API_URL || 'http://localhost:8787'
+
+function isLegacyReservasSchemaError(message?: string): boolean {
+  if (!message) {
+    return false
+  }
+
+  return (
+    message.includes('column "nombre" of relation "reservas" does not exist') ||
+    message.includes('column "apellido" of relation "reservas" does not exist') ||
+    message.includes('column "nombre_nino" of relation "reservas" does not exist')
+  )
+}
 
 async function getPublicEventFromLocalApi(): Promise<PublicEventData> {
   const response = await fetch(`${localApiUrl}/api/publico/evento`)
@@ -79,6 +94,9 @@ async function createReservationFromLocalApi(
     body: JSON.stringify({
       eventoId,
       nombreCompleto: input.nombreCompleto,
+      nombre: input.nombre,
+      apellido: input.apellido,
+      nombreNino: input.nombreNino,
       documento: input.documento,
       asientoId: input.asientoId,
     }),
@@ -239,12 +257,32 @@ async function createReservationFromSupabase(eventoId: string, input: Reservatio
     throw new Error('El documento ya alcanzo el limite de reservas permitido.')
   }
 
-  const { error } = await supabase.from('reservas').insert({
+  const extendedPayload = {
     evento_id: eventoId,
     asiento_id: input.asientoId,
     nombre_completo: input.nombreCompleto.trim(),
+    nombre: input.nombre?.trim() || null,
+    apellido: input.apellido?.trim() || null,
+    nombre_nino: input.nombreNino?.trim() || null,
     documento: input.documento.trim(),
-  })
+  }
+
+  const { error } = await supabase.from('reservas').insert(extendedPayload)
+
+  if (error && isLegacyReservasSchemaError(error.message)) {
+    const { error: fallbackError } = await supabase.from('reservas').insert({
+      evento_id: eventoId,
+      asiento_id: input.asientoId,
+      nombre_completo: input.nombreCompleto.trim(),
+      documento: input.documento.trim(),
+    })
+
+    if (fallbackError) {
+      throw new Error(fallbackError.message)
+    }
+
+    return
+  }
 
   if (error) {
     throw new Error(error.message)

@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { ProtectedRoute } from './ProtectedRoute'
 import { PublicoWelcomePage } from '../features/publico/PublicoWelcomePage'
 import { PublicoReservaPage } from '../features/publico/PublicoReservaPage'
+import { PublicoReservaConfirmadaPage } from '../features/publico/PublicoReservaConfirmadaPage'
 import { BackofficeLoginPage } from '../features/backoffice/BackofficeLoginPage'
 import { BackofficeConfiguracionPage } from '../features/backoffice/BackofficeConfiguracionPage'
 import { BackofficeSeccionesPage } from '../features/backoffice/BackofficeSeccionesPage'
@@ -31,6 +32,10 @@ export const router = createBrowserRouter([
   {
     path: '/publico/reserva',
     element: <PublicoReservaPage />,
+  },
+  {
+    path: '/publico/reserva/confirmada',
+    element: <PublicoReservaConfirmadaPage />,
   },
   {
     path: '/backoffice/login',

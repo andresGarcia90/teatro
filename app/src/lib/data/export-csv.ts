@@ -70,6 +70,9 @@ async function exportFromSupabase(): Promise<CsvExportResult> {
     'evento',
     'documento',
     'nombre_completo',
+    'nombre',
+    'apellido',
+    'nombre_nino',
     'seccion',
     'fila',
     'numero_asiento',
@@ -94,7 +97,7 @@ async function exportFromSupabase(): Promise<CsvExportResult> {
 
   const { data: reservas, error: reservasError } = await supabase
     .from('reservas')
-    .select('id,asiento_id,documento,nombre_completo,created_at')
+    .select('id,asiento_id,documento,nombre_completo,nombre,apellido,nombre_nino,created_at')
     .eq('evento_id', evento.id)
     .order('created_at', { ascending: true })
 
@@ -153,6 +156,9 @@ async function exportFromSupabase(): Promise<CsvExportResult> {
       evento: evento.nombre,
       documento: reserva.documento,
       nombre_completo: reserva.nombre_completo,
+      nombre: reserva.nombre || '',
+      apellido: reserva.apellido || '',
+      nombre_nino: reserva.nombre_nino || '',
       seccion: seat ? sectionMap.get(seat.seccion_id) || '' : '',
       fila: seat?.fila || '',
       numero_asiento: seat?.numero || '',

@@ -671,6 +671,9 @@ app.get('/api/backoffice/export/reservas.csv', async (_req, res) => {
         r.id as reserva_id,
         r.documento,
         r.nombre_completo,
+        r.nombre,
+        r.apellido,
+        r.nombre_nino,
         s.nombre as seccion,
         a.fila,
         a.numero as numero_asiento,
@@ -690,6 +693,9 @@ app.get('/api/backoffice/export/reservas.csv', async (_req, res) => {
       'evento',
       'documento',
       'nombre_completo',
+      'nombre',
+      'apellido',
+      'nombre_nino',
       'seccion',
       'fila',
       'numero_asiento',
@@ -705,6 +711,9 @@ app.get('/api/backoffice/export/reservas.csv', async (_req, res) => {
         evento.nombre,
         row.documento,
         row.nombre_completo,
+        row.nombre,
+        row.apellido,
+        row.nombre_nino,
         row.seccion,
         row.fila,
         row.numero_asiento,
@@ -908,7 +917,7 @@ app.get('/api/publico/validar-documento', async (req, res) => {
 })
 
 app.post('/api/publico/reservas', async (req, res) => {
-  const { eventoId, nombreCompleto, documento, asientoId } = req.body || {}
+  const { eventoId, nombreCompleto, nombre, apellido, nombreNino, documento, asientoId } = req.body || {}
 
   if (!eventoId || typeof eventoId !== 'string') {
     return res.status(400).json({ ok: false, message: 'eventoId es obligatorio.' })
@@ -925,6 +934,11 @@ app.post('/api/publico/reservas', async (req, res) => {
   if (!asientoId || typeof asientoId !== 'string') {
     return res.status(400).json({ ok: false, message: 'asientoId es obligatorio.' })
   }
+
+  const normalizedNombre = typeof nombre === 'string' && nombre.trim() ? nombre.trim() : null
+  const normalizedApellido = typeof apellido === 'string' && apellido.trim() ? apellido.trim() : null
+  const normalizedNombreNino =
+    typeof nombreNino === 'string' && nombreNino.trim() ? nombreNino.trim() : null
 
   const client = await pool.connect()
 
@@ -1017,13 +1031,35 @@ app.post('/api/publico/reservas', async (req, res) => {
         .json({ ok: false, message: 'El documento ya alcanzo el limite de reservas permitido.' })
     }
 
-    await client.query(
-      `
-      insert into reservas (evento_id, asiento_id, nombre_completo, documento)
-      values ($1, $2, $3, $4)
-      `,
-      [eventoId, asientoId, nombreCompleto.trim(), documento.trim()],
-    )
+    try {
+      await client.query(
+        `
+        insert into reservas (evento_id, asiento_id, nombre_completo, nombre, apellido, nombre_nino, documento)
+        values ($1, $2, $3, $4, $5, $6, $7)
+        `,
+        [
+          eventoId,
+          asientoId,
+          nombreCompleto.trim(),
+          normalizedNombre,
+          normalizedApellido,
+          normalizedNombreNino,
+          documento.trim(),
+        ],
+      )
+    } catch (insertError) {
+      if (insertError?.code !== '42703') {
+        throw insertError
+      }
+
+      await client.query(
+        `
+        insert into reservas (evento_id, asiento_id, nombre_completo, documento)
+        values ($1, $2, $3, $4)
+        `,
+        [eventoId, asientoId, nombreCompleto.trim(), documento.trim()],
+      )
+    }
 
     await client.query('commit')
     return res.status(201).json({ ok: true })
