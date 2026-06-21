@@ -119,7 +119,10 @@ app.get('/api/backoffice/configuracion', async (_req, res) => {
       select
         e.id as evento_id,
         e.nombre as nombre_evento,
+        e.descripcion,
         e.fecha_evento,
+        e.horario,
+        e.direccion,
         e.fecha_cierre_reservas,
         coalesce(c.max_entradas_por_persona, 1) as max_entradas_por_persona,
         coalesce(c.reservas_habilitadas, true) as reservas_habilitadas
@@ -144,7 +147,10 @@ app.get('/api/backoffice/configuracion', async (_req, res) => {
       configuracion: {
         eventoId: row.evento_id,
         nombreEvento: row.nombre_evento,
+        descripcion: row.descripcion || null,
         fechaEvento: row.fecha_evento,
+        horario: row.horario || null,
+        direccion: row.direccion || null,
         fechaCierreReservas: row.fecha_cierre_reservas,
         maxEntradasPorPersona: row.max_entradas_por_persona,
         reservasHabilitadas: row.reservas_habilitadas,
@@ -156,7 +162,15 @@ app.get('/api/backoffice/configuracion', async (_req, res) => {
 })
 
 app.put('/api/backoffice/configuracion', async (req, res) => {
-  const { nombreEvento, fechaCierreReservas, maxEntradasPorPersona, reservasHabilitadas } = req.body || {}
+  const {
+    nombreEvento,
+    descripcion,
+    horario,
+    direccion,
+    fechaCierreReservas,
+    maxEntradasPorPersona,
+    reservasHabilitadas,
+  } = req.body || {}
 
   if (!nombreEvento || typeof nombreEvento !== 'string') {
     return res.status(400).json({ ok: false, message: 'nombreEvento es obligatorio.' })
@@ -182,6 +196,13 @@ app.put('/api/backoffice/configuracion', async (req, res) => {
   try {
     await client.query('begin')
 
+    const normalizedDescripcion =
+      typeof descripcion === 'string' && descripcion.trim().length > 0 ? descripcion.trim() : null
+    const normalizedHorario =
+      typeof horario === 'string' && horario.trim().length > 0 ? horario.trim() : null
+    const normalizedDireccion =
+      typeof direccion === 'string' && direccion.trim().length > 0 ? direccion.trim() : null
+
     const activeEventResult = await client.query(
       `
       select id, fecha_evento
@@ -202,10 +223,20 @@ app.put('/api/backoffice/configuracion', async (req, res) => {
       `
       update eventos
       set nombre = $1,
-          fecha_cierre_reservas = $2::timestamptz
-      where id = $3
+          descripcion = $2,
+          horario = $3::time,
+          direccion = $4,
+          fecha_cierre_reservas = $5::timestamptz
+      where id = $6
       `,
-      [nombreEvento.trim(), fechaCierreReservas, evento.id],
+      [
+        nombreEvento.trim(),
+        normalizedDescripcion,
+        normalizedHorario,
+        normalizedDireccion,
+        fechaCierreReservas,
+        evento.id,
+      ],
     )
 
     await client.query(
@@ -225,7 +256,10 @@ app.put('/api/backoffice/configuracion', async (req, res) => {
       select
         e.id as evento_id,
         e.nombre as nombre_evento,
+        e.descripcion,
         e.fecha_evento,
+        e.horario,
+        e.direccion,
         e.fecha_cierre_reservas,
         c.max_entradas_por_persona,
         c.reservas_habilitadas
@@ -246,7 +280,10 @@ app.put('/api/backoffice/configuracion', async (req, res) => {
       configuracion: {
         eventoId: row.evento_id,
         nombreEvento: row.nombre_evento,
+        descripcion: row.descripcion || null,
         fechaEvento: row.fecha_evento,
+        horario: row.horario || null,
+        direccion: row.direccion || null,
         fechaCierreReservas: row.fecha_cierre_reservas,
         maxEntradasPorPersona: row.max_entradas_por_persona,
         reservasHabilitadas: row.reservas_habilitadas,
@@ -696,6 +733,10 @@ app.get('/api/publico/evento', async (_req, res) => {
       select
         e.id,
         e.nombre,
+        e.descripcion,
+        e.fecha_evento,
+        e.horario,
+        e.direccion,
         e.fecha_cierre_reservas,
         coalesce(c.reservas_habilitadas, true) as reservas_habilitadas,
         coalesce(c.max_entradas_por_persona, 1) as max_entradas_por_persona
@@ -727,6 +768,10 @@ app.get('/api/publico/evento', async (_req, res) => {
       evento: {
         eventoId: eventRow.id,
         nombreEvento: eventRow.nombre,
+        descripcion: eventRow.descripcion || null,
+        fechaEvento: eventRow.fecha_evento,
+        horario: eventRow.horario || null,
+        direccion: eventRow.direccion || null,
         fechaCierreReservas: eventRow.fecha_cierre_reservas,
         reservasHabilitadas: eventRow.reservas_habilitadas,
         maxEntradasPorPersona: eventRow.max_entradas_por_persona,

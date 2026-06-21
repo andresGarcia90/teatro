@@ -3,7 +3,10 @@ import { supabase } from '../supabase/client'
 export type BackofficeConfiguration = {
   eventoId: string
   nombreEvento: string
+  descripcion?: string | null
   fechaEvento: string
+  horario?: string | null
+  direccion?: string | null
   fechaCierreReservas: string
   maxEntradasPorPersona: number
   reservasHabilitadas: boolean
@@ -11,6 +14,9 @@ export type BackofficeConfiguration = {
 
 export type BackofficeConfigurationInput = {
   nombreEvento: string
+  descripcion?: string | null
+  horario?: string | null
+  direccion?: string | null
   fechaCierreReservas: string
   maxEntradasPorPersona: number
   reservasHabilitadas: boolean
@@ -55,7 +61,7 @@ async function getFromSupabase(): Promise<BackofficeConfiguration> {
 
   const { data: evento, error: eventoError } = await supabase
     .from('eventos')
-    .select('id,nombre,fecha_evento,fecha_cierre_reservas')
+    .select('id,nombre,descripcion,fecha_evento,horario,direccion,fecha_cierre_reservas')
     .eq('activo', true)
     .limit(1)
     .maybeSingle()
@@ -82,7 +88,10 @@ async function getFromSupabase(): Promise<BackofficeConfiguration> {
   return {
     eventoId: evento.id,
     nombreEvento: evento.nombre,
+    descripcion: evento.descripcion || null,
     fechaEvento: evento.fecha_evento,
+    horario: evento.horario || null,
+    direccion: evento.direccion || null,
     fechaCierreReservas: evento.fecha_cierre_reservas,
     maxEntradasPorPersona: config?.max_entradas_por_persona ?? 1,
     reservasHabilitadas: config?.reservas_habilitadas ?? true,
@@ -100,6 +109,9 @@ async function updateFromSupabase(input: BackofficeConfigurationInput): Promise<
     .from('eventos')
     .update({
       nombre: input.nombreEvento,
+      descripcion: input.descripcion || null,
+      horario: input.horario || null,
+      direccion: input.direccion || null,
       fecha_cierre_reservas: input.fechaCierreReservas,
     })
     .eq('id', current.eventoId)

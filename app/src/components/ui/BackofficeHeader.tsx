@@ -14,15 +14,15 @@ export function BackofficeHeader({ title, description, children }: BackofficeHea
         aria-hidden
         style={{
           background:
-            'linear-gradient(135deg, rgba(180,83,9,0.12) 0%, rgba(180,83,9,0.02) 55%, rgba(2,132,199,0.1) 100%)',
+            'linear-gradient(135deg, rgba(37,99,235,0.22) 0%, rgba(37,99,235,0.04) 52%, rgba(34,197,94,0.14) 100%)',
         }}
       />
 
       <div className="relative z-10 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-amber-700">Backoffice</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-accent">Backoffice</p>
           <h1 className="mt-2 text-2xl font-bold md:text-4xl">{title}</h1>
-          <p className="mt-3 text-sm text-slate-600 md:text-base">{description}</p>
+          <p className="mt-3 text-sm text-muted-foreground md:text-base">{description}</p>
         </div>
         {children ? <div className="flex items-center">{children}</div> : null}
       </div>

@@ -36,6 +36,9 @@ export function BackofficeConfiguracionPage() {
   const logout = useBackofficeAuthStore((state) => state.logout)
 
   const [nombreEvento, setNombreEvento] = useState('')
+  const [descripcion, setDescripcion] = useState('')
+  const [horario, setHorario] = useState('')
+  const [direccion, setDireccion] = useState('')
   const [fechaCierreReservas, setFechaCierreReservas] = useState('')
   const [maxEntradasPorPersona, setMaxEntradasPorPersona] = useState(1)
   const [reservasHabilitadas, setReservasHabilitadas] = useState(true)
@@ -52,6 +55,9 @@ export function BackofficeConfiguracionPage() {
     }
 
     setNombreEvento(configQuery.data.nombreEvento)
+    setDescripcion(configQuery.data.descripcion || '')
+    setHorario(configQuery.data.horario || '')
+    setDireccion(configQuery.data.direccion || '')
     setFechaCierreReservas(toLocalDateTimeInput(configQuery.data.fechaCierreReservas))
     setMaxEntradasPorPersona(configQuery.data.maxEntradasPorPersona)
     setReservasHabilitadas(configQuery.data.reservasHabilitadas)
@@ -92,6 +98,9 @@ export function BackofficeConfiguracionPage() {
 
     mutation.mutate({
       nombreEvento: nombreEvento.trim(),
+      descripcion: descripcion.trim() || null,
+      horario: horario.trim() || null,
+      direccion: direccion.trim() || null,
       fechaCierreReservas: toIsoFromLocalDateTime(fechaCierreReservas),
       maxEntradasPorPersona,
       reservasHabilitadas,
@@ -144,7 +153,52 @@ export function BackofficeConfiguracionPage() {
                     required
                   />
                 </div>
+              </div>
 
+              <div>
+                <label className="mb-1 block text-sm font-medium" htmlFor="descripcion">
+                  Descripción del evento
+                </label>
+                <textarea
+                  id="descripcion"
+                  rows={3}
+                  className="w-full border border-slate-300 bg-white px-3 py-2 shadow-sm focus:border-amber-600"
+                  value={descripcion}
+                  onChange={(e) => setDescripcion(e.target.value)}
+                  placeholder="Ej: Una producción magistral de la Compañía Teatral..."
+                />
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-sm font-medium" htmlFor="horario">
+                    Horario del evento
+                  </label>
+                  <input
+                    id="horario"
+                    type="time"
+                    className="w-full border border-slate-300 bg-white px-3 py-2 shadow-sm focus:border-amber-600"
+                    value={horario}
+                    onChange={(e) => setHorario(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium" htmlFor="direccion">
+                    Dirección del evento
+                  </label>
+                  <input
+                    id="direccion"
+                    type="text"
+                    className="w-full border border-slate-300 bg-white px-3 py-2 shadow-sm focus:border-amber-600"
+                    value={direccion}
+                    onChange={(e) => setDireccion(e.target.value)}
+                    placeholder="Ej: Avenida Principal 123"
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
                 <div>
                   <label className="mb-1 block text-sm font-medium" htmlFor="fechaCierreReservas">
                     Fecha y hora limite de reservas

@@ -8,9 +8,9 @@ type StatusPillProps = {
 }
 
 const toneClasses: Record<StatusPillTone, string> = {
-  amber: 'border-amber-200 bg-amber-50 text-amber-800',
-  sky: 'border-sky-200 bg-sky-50 text-sky-800',
-  slate: 'border-slate-200 bg-white text-slate-700',
+  amber: 'border-accent bg-secondary text-accent',
+  sky: 'border-primary bg-secondary text-primary',
+  slate: 'border-border bg-card text-muted-foreground',
 }
 
 export function StatusPill({ tone = 'slate', children }: StatusPillProps) {

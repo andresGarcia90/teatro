@@ -9,6 +9,10 @@ export type PublicSection = {
 export type PublicEventData = {
   eventoId: string
   nombreEvento: string
+  descripcion?: string | null
+  fechaEvento: string
+  horario?: string | null
+  direccion?: string | null
   fechaCierreReservas: string
   reservasHabilitadas: boolean
   maxEntradasPorPersona: number
@@ -111,7 +115,7 @@ async function getPublicEventFromSupabase(): Promise<PublicEventData> {
 
   const { data: evento, error: eventoError } = await supabase
     .from('eventos')
-    .select('id,nombre,fecha_cierre_reservas,activo')
+    .select('id,nombre,descripcion,fecha_evento,horario,direccion,fecha_cierre_reservas,activo')
     .eq('activo', true)
     .limit(1)
     .maybeSingle()
@@ -150,6 +154,10 @@ async function getPublicEventFromSupabase(): Promise<PublicEventData> {
   return {
     eventoId: evento.id,
     nombreEvento: evento.nombre,
+    descripcion: evento.descripcion || null,
+    fechaEvento: evento.fecha_evento,
+    horario: evento.horario || null,
+    direccion: evento.direccion || null,
     fechaCierreReservas: evento.fecha_cierre_reservas,
     reservasHabilitadas: configRes.data?.reservas_habilitadas ?? true,
     maxEntradasPorPersona: configRes.data?.max_entradas_por_persona ?? 1,

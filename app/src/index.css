@@ -1,46 +1,61 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --font-display: 'Merriweather', 'Palatino Linotype', 'Book Antiqua', Palatino, serif;
-  --font-body: 'Source Sans 3', 'Trebuchet MS', 'Segoe UI', sans-serif;
-
-  --bg-canvas-top: #1f1625;
-  --bg-canvas-bottom: #0f172a;
-  --bg-veil: #ffffff;
-  --bg-surface: #ffffff;
-  --bg-surface-soft: #f8fafc;
-
-  --text-primary: #0f172a;
-  --text-muted: #475569;
-
-  --accent: #b45309;
-  --accent-strong: #92400e;
-  --accent-soft: #fef3c7;
-
-  --ring-subtle: #cbd5e1;
-  --radius-sm: 0.5rem;
-  --radius-md: 0.75rem;
-  --radius-lg: 1rem;
-
-  --shadow-soft: 0 8px 24px rgb(15 23 42 / 0.08);
-  --shadow-card: 0 16px 38px rgb(15 23 42 / 0.12);
-
-  font-family: var(--font-body);
-  color: var(--text-primary);
-  background-color: var(--bg-canvas-bottom);
+  --font-size: 16px;
+  --font-heading: 'Sora', 'Segoe UI', sans-serif;
+  --font-body: 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
+  --background: #0b1628;
+  --foreground: #edf2ff;
+  --card: #112240;
+  --card-foreground: #edf2ff;
+  --popover: #112240;
+  --popover-foreground: #edf2ff;
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --secondary: #1e3a5f;
+  --secondary-foreground: #edf2ff;
+  --muted: #1e3a5f;
+  --muted-foreground: #94a3b8;
+  --accent: #22c55e;
+  --accent-foreground: #0b1628;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: rgb(255 255 255 / 0.09);
+  --input: transparent;
+  --input-background: #0d1b2a;
+  --switch-background: #1e3a5f;
+  --font-weight-medium: 600;
+  --font-weight-normal: 400;
+  --ring: #2563eb;
+  --chart-1: #2563eb;
+  --chart-2: #22c55e;
+  --chart-3: #f59e0b;
+  --chart-4: #8b5cf6;
+  --chart-5: #ef4444;
+  --radius: 0.75rem;
+  --sidebar: #0d1b2a;
+  --sidebar-foreground: #edf2ff;
+  --sidebar-primary: #2563eb;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #1e3a5f;
+  --sidebar-accent-foreground: #edf2ff;
+  --sidebar-border: rgb(255 255 255 / 0.09);
+  --sidebar-ring: #2563eb;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
   font-family: var(--font-body);
-  color: var(--text-primary);
+  color: var(--foreground);
   background:
-    radial-gradient(circle at 15% -10%, rgb(180 83 9 / 0.25), transparent 36%),
-    radial-gradient(circle at 95% -20%, rgb(217 119 6 / 0.2), transparent 30%),
-    linear-gradient(180deg, var(--bg-canvas-top), var(--bg-canvas-bottom));
+    radial-gradient(circle at 12% -8%, rgb(37 99 235 / 0.24), transparent 38%),
+    radial-gradient(circle at 96% -12%, rgb(34 197 94 / 0.18), transparent 34%),
+    linear-gradient(180deg, #0b1628 0%, #091222 100%);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   line-height: 1.5;
@@ -51,46 +66,64 @@ body {
 }
 
 @layer base {
-  h1,
-  h2,
-  h3,
+  html {
+    font-size: var(--font-size);
+  }
+
+  * {
+    border-color: var(--border);
+  }
+
+  h1 {
+    font-family: var(--font-heading);
+    font-size: 1.5rem;
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  h2 {
+    font-family: var(--font-heading);
+    font-size: 1.25rem;
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  h3 {
+    font-family: var(--font-heading);
+    font-size: 1.125rem;
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
   h4 {
-    font-family: var(--font-display);
-    letter-spacing: -0.01em;
-    color: var(--text-primary);
+    font-family: var(--font-heading);
+    font-size: 1rem;
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
   }
 
-  p,
   label,
-  span,
+  button {
+    font-size: 1rem;
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  input,
+  textarea,
+  select {
+    font-size: 1rem;
+    font-weight: var(--font-weight-normal);
+    line-height: 1.5;
+    background-color: var(--input-background);
+    color: var(--foreground);
+  }
+
   button,
   input,
   select,
   textarea {
-    font-family: var(--font-body);
-  }
-
-  button,
-  input,
-  select,
-  textarea {
-    border-radius: var(--radius-sm);
-  }
-
-  input,
-  select,
-  textarea {
-    transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
-  }
-
-  button,
-  a {
-    transition: transform 160ms ease, box-shadow 180ms ease, background-color 180ms ease, border-color 180ms ease;
-  }
-
-  button:active,
-  a:active {
-    transform: translateY(1px);
+    border-radius: calc(var(--radius) - 4px);
   }
 
   input:focus-visible,
@@ -98,29 +131,30 @@ body {
   textarea:focus-visible,
   button:focus-visible,
   a:focus-visible {
-    outline: 2px solid rgb(180 83 9 / 0.85);
+    outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
 }
 
 @layer components {
   .app-surface {
-    background: color-mix(in srgb, var(--bg-veil) 94%, transparent);
-    border: 1px solid var(--ring-subtle);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-soft);
-    backdrop-filter: blur(4px);
+    background: rgb(13 27 42 / 0.86);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 10px 28px rgb(0 0 0 / 0.28);
+    backdrop-filter: blur(8px);
   }
 
   .app-card {
-    background: var(--bg-surface);
-    border: 1px solid #e2e8f0;
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-card);
+    background: var(--card);
+    color: var(--card-foreground);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 16px 34px rgb(0 0 0 / 0.26);
   }
 
   .app-muted {
-    color: var(--text-muted);
+    color: var(--muted-foreground);
   }
 
   .app-fade-in {
@@ -143,7 +177,7 @@ body {
 @media (max-width: 640px) {
   .app-card,
   .app-surface {
-    border-radius: var(--radius-md);
+    border-radius: calc(var(--radius) - 2px);
   }
 }
 
