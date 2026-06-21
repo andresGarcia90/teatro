@@ -1,0 +1,159 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-display: 'Merriweather', 'Palatino Linotype', 'Book Antiqua', Palatino, serif;
+  --font-body: 'Source Sans 3', 'Trebuchet MS', 'Segoe UI', sans-serif;
+
+  --bg-canvas-top: #1f1625;
+  --bg-canvas-bottom: #0f172a;
+  --bg-veil: #ffffff;
+  --bg-surface: #ffffff;
+  --bg-surface-soft: #f8fafc;
+
+  --text-primary: #0f172a;
+  --text-muted: #475569;
+
+  --accent: #b45309;
+  --accent-strong: #92400e;
+  --accent-soft: #fef3c7;
+
+  --ring-subtle: #cbd5e1;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+
+  --shadow-soft: 0 8px 24px rgb(15 23 42 / 0.08);
+  --shadow-card: 0 16px 38px rgb(15 23 42 / 0.12);
+
+  font-family: var(--font-body);
+  color: var(--text-primary);
+  background-color: var(--bg-canvas-bottom);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font-body);
+  color: var(--text-primary);
+  background:
+    radial-gradient(circle at 15% -10%, rgb(180 83 9 / 0.25), transparent 36%),
+    radial-gradient(circle at 95% -20%, rgb(217 119 6 / 0.2), transparent 30%),
+    linear-gradient(180deg, var(--bg-canvas-top), var(--bg-canvas-bottom));
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  line-height: 1.5;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+@layer base {
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
+  }
+
+  p,
+  label,
+  span,
+  button,
+  input,
+  select,
+  textarea {
+    font-family: var(--font-body);
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    border-radius: var(--radius-sm);
+  }
+
+  input,
+  select,
+  textarea {
+    transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+  }
+
+  button,
+  a {
+    transition: transform 160ms ease, box-shadow 180ms ease, background-color 180ms ease, border-color 180ms ease;
+  }
+
+  button:active,
+  a:active {
+    transform: translateY(1px);
+  }
+
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  button:focus-visible,
+  a:focus-visible {
+    outline: 2px solid rgb(180 83 9 / 0.85);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .app-surface {
+    background: color-mix(in srgb, var(--bg-veil) 94%, transparent);
+    border: 1px solid var(--ring-subtle);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-soft);
+    backdrop-filter: blur(4px);
+  }
+
+  .app-card {
+    background: var(--bg-surface);
+    border: 1px solid #e2e8f0;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+  }
+
+  .app-muted {
+    color: var(--text-muted);
+  }
+
+  .app-fade-in {
+    animation: app-enter 420ms ease both;
+  }
+}
+
+@keyframes app-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 640px) {
+  .app-card,
+  .app-surface {
+    border-radius: var(--radius-md);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
