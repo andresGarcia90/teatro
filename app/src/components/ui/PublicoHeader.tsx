@@ -1,6 +1,93 @@
 import { Link } from 'react-router-dom'
 
-export function PublicoHeader() {
+type PublicoHeaderProps = {
+  mode?: 'default' | 'reserva'
+  eventName?: string
+  eventDate?: string | null
+  eventTime?: string | null
+  selectedSeatsCount?: number
+}
+
+function formatReservationDateTime(eventDate?: string | null, eventTime?: string | null): string {
+  if (!eventDate) {
+    return 'Fecha por definir'
+  }
+
+  const date = new Date(eventDate)
+  if (Number.isNaN(date.getTime())) {
+    return eventDate
+  }
+
+  const formattedDate = new Intl.DateTimeFormat('es-AR', {
+    weekday: 'short',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  }).format(date)
+
+  if (!eventTime) {
+    return formattedDate
+  }
+
+  const timeMatch = /^(\d{2}:\d{2})/.exec(eventTime)
+  const formattedTime = timeMatch ? `${timeMatch[1]} hrs` : eventTime
+
+  return `${formattedDate} · ${formattedTime}`
+}
+
+export function PublicoHeader({
+  mode = 'default',
+  eventName,
+  eventDate,
+  eventTime,
+  selectedSeatsCount = 0,
+}: PublicoHeaderProps) {
+  if (mode === 'reserva') {
+    const subtitle = formatReservationDateTime(eventDate, eventTime)
+    const seatsLabel = selectedSeatsCount === 1 ? 'seleccionado' : 'seleccionados'
+
+    return (
+      <header className="border-b border-border bg-card/90 text-card-foreground backdrop-blur-sm">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 md:px-6">
+          <div className="flex min-w-0 items-start gap-3">
+            <Link
+              to="/publico"
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground transition hover:bg-secondary hover:text-foreground"
+              aria-label="Volver"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </Link>
+
+            <div className="min-w-0">
+              <h1 className="truncate text-[16px] font-semibold leading-tight text-card-foreground">
+                {eventName || 'Reserva de entradas'}
+              </h1>
+              <p className="truncate text-[12px] text-muted-foreground">{subtitle}</p>
+            </div>
+          </div>
+
+          <span
+            className="inline-flex shrink-0 items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold text-primary"
+            style={{ backgroundColor: 'oklab(0.346175 -0.0177302 -0.0713718 / 0.4)' }}
+          >
+            <svg className="h-4 w-4" fill="none" stroke="rgb(37, 99, 235)" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.8}
+                d="M3 8.5A2.5 2.5 0 015.5 6h13A2.5 2.5 0 0121 8.5V11a2 2 0 00-2 2 2 2 0 002 2v2.5a2.5 2.5 0 01-2.5 2.5h-13A2.5 2.5 0 013 17.5V15a2 2 0 002-2 2 2 0 00-2-2V8.5z"
+              />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8.5 9v6m7-6v6" />
+            </svg>
+            {selectedSeatsCount} {seatsLabel}
+          </span>
+        </div>
+      </header>
+    )
+  }
+
   return (
     <header className="border-b border-border bg-card text-card-foreground">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">

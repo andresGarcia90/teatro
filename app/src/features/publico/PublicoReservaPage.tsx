@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom'
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
@@ -141,23 +140,16 @@ export function PublicoReservaPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <PublicoHeader />
+      <PublicoHeader
+        mode="reserva"
+        eventName={eventQuery.data?.nombreEvento}
+        eventDate={eventQuery.data?.fechaEvento}
+        eventTime={eventQuery.data?.horario}
+        selectedSeatsCount={selectedSeatIds.length}
+      />
       
       <main className="app-fade-in">
         <section className="mx-auto max-w-2xl p-6 md:p-8">
-          {/* Header con backlink */}
-          <div className="mb-8 flex items-center gap-2">
-            <Link
-              to="/publico"
-              className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground transition"
-            >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              Volver
-            </Link>
-          </div>
-
           <section className="mb-8 rounded-lg border border-border bg-card p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-card-foreground">Identificación</h2>
             <p className="mt-1 text-sm text-muted-foreground">
