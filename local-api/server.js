@@ -46,6 +46,36 @@ function escapeCsv(value) {
   return str
 }
 
+function formatReservationDate(value) {
+  if (value === null || value === undefined) {
+    return ''
+  }
+
+  if (value instanceof Date) {
+    const day = String(value.getUTCDate()).padStart(2, '0')
+    const month = String(value.getUTCMonth() + 1).padStart(2, '0')
+    const year = value.getUTCFullYear()
+    return `${day}/${month}/${year}`
+  }
+
+  const text = String(value)
+  const isoDate = text.slice(0, 10)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) {
+    const [year, month, day] = isoDate.split('-')
+    return `${day}/${month}/${year}`
+  }
+
+  const parsedDate = new Date(text)
+  if (!Number.isNaN(parsedDate.getTime())) {
+    const day = String(parsedDate.getUTCDate()).padStart(2, '0')
+    const month = String(parsedDate.getUTCMonth() + 1).padStart(2, '0')
+    const year = parsedDate.getUTCFullYear()
+    return `${day}/${month}/${year}`
+  }
+
+  return text
+}
+
 app.get('/health', async (_req, res) => {
   try {
     await pool.query('select 1')
@@ -688,38 +718,23 @@ app.get('/api/backoffice/export/reservas.csv', async (_req, res) => {
       [evento.id],
     )
 
-    const headers = [
-      'reserva_id',
-      'evento',
-      'documento',
-      'nombre_completo',
-      'nombre',
-      'apellido',
-      'nombre_nino',
-      'seccion',
-      'fila',
-      'numero_asiento',
-      'codigo_asiento',
-      'fecha_reserva',
+    const columns = [
+      { label: 'Nombre del hijo', key: 'nombre_nino' },
+      { label: 'Nombre', key: 'nombre' },
+      { label: 'Apellido', key: 'apellido' },
+      { label: 'Seccion', key: 'seccion' },
+      { label: 'Fila', key: 'fila' },
+      { label: 'Nro de asiento', key: 'numero_asiento' },
+      { label: 'Codigo de asiento', key: 'codigo_asiento' },
+      { label: 'Fecha de reserva', key: 'fecha_reserva' },
     ]
 
-    const lines = [headers.join(',')]
+    const lines = [columns.map((column) => escapeCsv(column.label)).join(',')]
 
     for (const row of reservationsResult.rows) {
-      const values = [
-        row.reserva_id,
-        evento.nombre,
-        row.documento,
-        row.nombre_completo,
-        row.nombre,
-        row.apellido,
-        row.nombre_nino,
-        row.seccion,
-        row.fila,
-        row.numero_asiento,
-        row.codigo_asiento,
-        row.fecha_reserva,
-      ]
+      const values = columns.map((column) => row[column.key] ?? '')
+
+      values[values.length - 1] = formatReservationDate(values[values.length - 1])
 
       lines.push(values.map(escapeCsv).join(','))
     }

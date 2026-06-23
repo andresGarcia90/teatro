@@ -5,6 +5,11 @@ type CsvExportResult = {
   fileName: string
 }
 
+type CsvColumn = {
+  label: string
+  key: string
+}
+
 const dataMode = (import.meta.env.VITE_DATA_MODE || 'supabase').toLowerCase()
 const localApiUrl = import.meta.env.VITE_LOCAL_API_URL || 'http://localhost:8787'
 
@@ -21,11 +26,41 @@ function escapeCsv(value: unknown): string {
   return str
 }
 
-function buildCsv(rows: Array<Record<string, unknown>>, headers: string[]): string {
-  const lines = [headers.join(',')]
+function formatReservationDate(value: unknown): string {
+  if (value === null || value === undefined) {
+    return ''
+  }
+
+  if (value instanceof Date) {
+    const day = String(value.getUTCDate()).padStart(2, '0')
+    const month = String(value.getUTCMonth() + 1).padStart(2, '0')
+    const year = value.getUTCFullYear()
+    return `${day}/${month}/${year}`
+  }
+
+  const text = String(value)
+  const isoDate = text.slice(0, 10)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) {
+    const [year, month, day] = isoDate.split('-')
+    return `${day}/${month}/${year}`
+  }
+
+  const parsedDate = new Date(text)
+  if (!Number.isNaN(parsedDate.getTime())) {
+    const day = String(parsedDate.getUTCDate()).padStart(2, '0')
+    const month = String(parsedDate.getUTCMonth() + 1).padStart(2, '0')
+    const year = parsedDate.getUTCFullYear()
+    return `${day}/${month}/${year}`
+  }
+
+  return text
+}
+
+function buildCsv(rows: Array<Record<string, unknown>>, columns: CsvColumn[]): string {
+  const lines = [columns.map((column) => escapeCsv(column.label)).join(',')]
 
   for (const row of rows) {
-    const line = headers.map((header) => escapeCsv(row[header])).join(',')
+    const line = columns.map((column) => escapeCsv(row[column.key])).join(',')
     lines.push(line)
   }
 
@@ -65,19 +100,15 @@ async function exportFromSupabase(): Promise<CsvExportResult> {
     throw new Error('Faltan variables de Supabase en app/.env.local.')
   }
 
-  const headers = [
-    'reserva_id',
-    'evento',
-    'documento',
-    'nombre_completo',
-    'nombre',
-    'apellido',
-    'nombre_nino',
-    'seccion',
-    'fila',
-    'numero_asiento',
-    'codigo_asiento',
-    'fecha_reserva',
+  const columns: CsvColumn[] = [
+    { label: 'Nombre del hijo', key: 'nombre_nino' },
+    { label: 'Nombre', key: 'nombre' },
+    { label: 'Apellido', key: 'apellido' },
+    { label: 'Seccion', key: 'seccion' },
+    { label: 'Fila', key: 'fila' },
+    { label: 'Nro de asiento', key: 'numero_asiento' },
+    { label: 'Codigo de asiento', key: 'codigo_asiento' },
+    { label: 'Fecha de reserva', key: 'fecha_reserva' },
   ]
 
   const { data: evento, error: eventoError } = await supabase
@@ -152,10 +183,6 @@ async function exportFromSupabase(): Promise<CsvExportResult> {
   const csvRows = reservationRows.map((reserva) => {
     const seat = seatMap.get(reserva.asiento_id)
     return {
-      reserva_id: reserva.id,
-      evento: evento.nombre,
-      documento: reserva.documento,
-      nombre_completo: reserva.nombre_completo,
       nombre: reserva.nombre || '',
       apellido: reserva.apellido || '',
       nombre_nino: reserva.nombre_nino || '',
@@ -163,11 +190,11 @@ async function exportFromSupabase(): Promise<CsvExportResult> {
       fila: seat?.fila || '',
       numero_asiento: seat?.numero || '',
       codigo_asiento: seat?.codigo_asiento || '',
-      fecha_reserva: reserva.created_at,
+      fecha_reserva: formatReservationDate(reserva.created_at),
     }
   })
 
-  const csv = buildCsv(csvRows, headers)
+  const csv = buildCsv(csvRows, columns)
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
   const fileName = `reservas_${todayStamp()}.csv`
 
