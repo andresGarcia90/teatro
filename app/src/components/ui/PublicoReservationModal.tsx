@@ -135,10 +135,17 @@ export function PublicoReservationModal({
                 id="documento"
                 type="text"
                 value={formData.documento}
-                onChange={(event) => onDocumentoChange(event.target.value)}
+                onChange={(event) => {
+                  const value = event.target.value
+                  // Solo permite números y máximo 9 caracteres
+                  if (/^\d*$/.test(value) && value.length <= 9) {
+                    onDocumentoChange(value)
+                  }
+                }}
                 className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm shadow-sm focus:border-primary focus:ring-1 focus:ring-primary"
                 placeholder="Ej: 12345678"
                 autoComplete="off"
+                inputMode="numeric"
               />
             </div>
 
