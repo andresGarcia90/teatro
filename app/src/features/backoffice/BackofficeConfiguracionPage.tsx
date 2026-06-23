@@ -132,7 +132,7 @@ export function BackofficeConfiguracionPage() {
                   <input
                     id="nombreEvento"
                     type="text"
-                    className="w-full border border-slate-300 bg-white px-3 py-2 shadow-sm focus:border-amber-600"
+                    className="backoffice-field"
                     value={nombreEvento}
                     onChange={(e) => setNombreEvento(e.target.value)}
                     required
@@ -147,7 +147,7 @@ export function BackofficeConfiguracionPage() {
                     id="maxEntradasPorPersona"
                     type="number"
                     min={1}
-                    className="w-full border border-slate-300 bg-white px-3 py-2 shadow-sm focus:border-amber-600"
+                    className="backoffice-field"
                     value={maxEntradasPorPersona}
                     onChange={(e) => setMaxEntradasPorPersona(Number(e.target.value || 1))}
                     required
@@ -162,7 +162,7 @@ export function BackofficeConfiguracionPage() {
                 <textarea
                   id="descripcion"
                   rows={3}
-                  className="w-full border border-slate-300 bg-white px-3 py-2 shadow-sm focus:border-amber-600"
+                  className="backoffice-field"
                   value={descripcion}
                   onChange={(e) => setDescripcion(e.target.value)}
                   placeholder="Ej: Una producción magistral de la Compañía Teatral..."
@@ -177,7 +177,7 @@ export function BackofficeConfiguracionPage() {
                   <input
                     id="horario"
                     type="time"
-                    className="w-full border border-slate-300 bg-white px-3 py-2 shadow-sm focus:border-amber-600"
+                    className="backoffice-field"
                     value={horario}
                     onChange={(e) => setHorario(e.target.value)}
                   />
@@ -190,7 +190,7 @@ export function BackofficeConfiguracionPage() {
                   <input
                     id="direccion"
                     type="text"
-                    className="w-full border border-slate-300 bg-white px-3 py-2 shadow-sm focus:border-amber-600"
+                    className="backoffice-field"
                     value={direccion}
                     onChange={(e) => setDireccion(e.target.value)}
                     placeholder="Ej: Avenida Principal 123"
@@ -206,7 +206,7 @@ export function BackofficeConfiguracionPage() {
                   <input
                     id="fechaCierreReservas"
                     type="datetime-local"
-                    className="w-full border border-slate-300 bg-white px-3 py-2 shadow-sm focus:border-amber-600"
+                    className="backoffice-field"
                     value={fechaCierreReservas}
                     onChange={(e) => setFechaCierreReservas(e.target.value)}
                     required

@@ -21,8 +21,8 @@ export function BackofficeHeader({ title, description, children }: BackofficeHea
       <div className="relative z-10 flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-accent">Backoffice</p>
-          <h1 className="mt-2 text-2xl font-bold md:text-4xl">{title}</h1>
-          <p className="mt-3 text-sm text-muted-foreground md:text-base">{description}</p>
+          <h1 className="mt-2 text-2xl font-bold text-white md:text-4xl">{title}</h1>
+          <p className="mt-3 text-sm text-slate-200 md:text-base">{description}</p>
         </div>
         {children ? <div className="flex items-center">{children}</div> : null}
       </div>

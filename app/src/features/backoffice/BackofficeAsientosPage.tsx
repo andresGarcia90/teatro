@@ -99,7 +99,7 @@ export function BackofficeAsientosPage() {
                   </label>
                   <select
                     id="seccion"
-                    className="w-full border border-slate-300 bg-white px-3 py-2 shadow-sm focus:border-amber-600"
+                    className="backoffice-field"
                     value={selectedSectionId}
                     onChange={(e) => setSelectedSectionId(e.target.value)}
                   >
@@ -119,7 +119,7 @@ export function BackofficeAsientosPage() {
                     id="filaInicio"
                     type="text"
                     maxLength={1}
-                    className="w-full border border-slate-300 bg-white px-3 py-2 uppercase shadow-sm focus:border-amber-600"
+                    className="backoffice-field uppercase"
                     value={filaInicio}
                     onChange={(e) => setFilaInicio(e.target.value.toUpperCase())}
                     required
@@ -135,7 +135,7 @@ export function BackofficeAsientosPage() {
                     type="number"
                     min={1}
                     max={26}
-                    className="w-full border border-slate-300 bg-white px-3 py-2 shadow-sm focus:border-amber-600"
+                    className="backoffice-field"
                     value={cantidadFilas}
                     onChange={(e) => setCantidadFilas(Number(e.target.value || 1))}
                     required
@@ -150,7 +150,7 @@ export function BackofficeAsientosPage() {
                     id="asientosPorFila"
                     type="number"
                     min={1}
-                    className="w-full border border-slate-300 bg-white px-3 py-2 shadow-sm focus:border-amber-600"
+                    className="backoffice-field"
                     value={asientosPorFila}
                     onChange={(e) => setAsientosPorFila(Number(e.target.value || 1))}
                     required

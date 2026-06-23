@@ -37,7 +37,7 @@ export function BackofficeLoginPage() {
     <main className="app-fade-in min-h-screen px-4 py-8 text-slate-800 md:py-10">
       <section className="app-surface mx-auto max-w-md p-6">
         <p className="text-sm font-semibold uppercase tracking-[0.16em] text-amber-700">Backoffice</p>
-        <h1 className="mt-2 text-2xl font-bold">Iniciar sesion</h1>
+        <h1 className="mt-2 text-2xl font-bold text-white">Iniciar sesion</h1>
 
         <form className="mt-6 space-y-4" onSubmit={onSubmit}>
           <div>
@@ -49,7 +49,7 @@ export function BackofficeLoginPage() {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full border border-slate-300 bg-white px-3 py-2 shadow-sm focus:border-amber-600"
+              className="backoffice-field"
               placeholder="admin"
               autoComplete="username"
               required
@@ -65,7 +65,7 @@ export function BackofficeLoginPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full border border-slate-300 bg-white px-3 py-2 shadow-sm focus:border-amber-600"
+              className="backoffice-field"
               placeholder="admin123"
               autoComplete="current-password"
               required
@@ -86,7 +86,7 @@ export function BackofficeLoginPage() {
           </button>
         </form>
 
-        <Link to="/publico" className="mt-4 inline-block text-sm text-sky-700 underline">
+        <Link to="/publico" className="mt-4 inline-block text-sm text-sky-300 underline">
           Volver al portal publico
         </Link>
       </section>

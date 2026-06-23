@@ -108,7 +108,7 @@ export function BackofficeSeccionesPage() {
               value={newNombre}
               onChange={(e) => setNewNombre(e.target.value)}
               placeholder="Nombre de la seccion"
-              className="border border-slate-300 bg-white px-3 py-2 shadow-sm focus:border-amber-600"
+              className="backoffice-field"
               required
             />
             <input
@@ -116,7 +116,7 @@ export function BackofficeSeccionesPage() {
               min={0}
               value={newOrden}
               onChange={(e) => setNewOrden(Number(e.target.value || 0))}
-              className="border border-slate-300 bg-white px-3 py-2 shadow-sm focus:border-amber-600"
+              className="backoffice-field"
               required
             />
             <button
@@ -167,7 +167,7 @@ export function BackofficeSeccionesPage() {
                           type="text"
                           value={editingNombre}
                           onChange={(e) => setEditingNombre(e.target.value)}
-                          className="border border-slate-300 bg-white px-3 py-2 shadow-sm focus:border-amber-600"
+                          className="backoffice-field"
                           required
                         />
                         <input
@@ -175,7 +175,7 @@ export function BackofficeSeccionesPage() {
                           min={0}
                           value={editingOrden}
                           onChange={(e) => setEditingOrden(Number(e.target.value || 0))}
-                          className="border border-slate-300 bg-white px-3 py-2 shadow-sm focus:border-amber-600"
+                          className="backoffice-field"
                           required
                         />
                         <button

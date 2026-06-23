@@ -161,6 +161,30 @@ body {
     animation: app-enter 420ms ease both;
   }
 
+  .backoffice-field {
+    width: 100%;
+    border: 1px solid rgb(203 213 225);
+    border-radius: calc(var(--radius) - 4px);
+    background: #ffffff;
+    color: rgb(15 23 42);
+    padding: 0.5rem 0.75rem;
+    box-shadow: 0 1px 2px rgb(15 23 42 / 0.04);
+  }
+
+  .backoffice-field::placeholder {
+    color: rgb(148 163 184);
+  }
+
+  .backoffice-field option {
+    color: rgb(15 23 42);
+  }
+
+  .backoffice-field:focus {
+    border-color: rgb(245 158 11);
+    outline: none;
+    box-shadow: 0 0 0 3px rgb(245 158 11 / 0.18);
+  }
+
   .seat-map-shell {
     border: 1px solid rgb(71 85 105 / 0.35);
     border-radius: 1rem;
